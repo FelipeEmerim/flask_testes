@@ -78,6 +78,6 @@ fi
 export FLASK_APP=hello.py
 export FLASK_ENV=development
 export POSTGRES_URL="127.0.0.1:5432"
-export POSTGRES_USER="postgres"
-export POSTGRES_PW="dbpw"
-export POSTGRES_DB="test"
+export POSTGRES_USER="emerim"
+export POSTGRES_PW="ve3"
+export POSTGRES_DB="emerim_db"

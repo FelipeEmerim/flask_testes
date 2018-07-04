@@ -6,6 +6,7 @@ import simplejson as json
 from werkzeug.exceptions import abort
 from werkzeug.utils import redirect, secure_filename
 from sqlalchemy_utils import database_exists, create_database, drop_database
+from sqlalchemy import text
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key = os.urandom(16)
@@ -54,7 +55,26 @@ def resetdb_command():
 
     print('Creating tables.')
     db.create_all()
-    print('Shiny!')
+
+    # example of usage
+    con = db.engine.connect() # creates a connection object
+    query = text('''SELECT VERSION()''') # creates a query to select the version of postgres
+    transaction = con.begin()   # begins the transaction
+    try:       # example of simple transaction
+        result = con.execute(query)
+        print(result.fetchall())
+        transaction.commit()
+    except:
+        transaction.rollback()
+        print('transaction rolled back due to errors')
+
+    with con.begin(): # example of transaction using the context manager
+        result = con.execute(query)
+        print(result.fetchall())
+
+    con.close()  # close the connection
+
+    print('It worked my friend')
 
 
 @app.route('/')
