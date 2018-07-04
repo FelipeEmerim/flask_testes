@@ -9,66 +9,61 @@ from sqlalchemy_utils import database_exists, create_database, drop_database
 from sqlalchemy import text
 
 app = Flask(__name__, static_url_path='/static')
-app.secret_key = os.urandom(16)
+app.config.from_envvar('APP_SETTINGS')
+db = SQLAlchemy(app)
 
-UPLOAD_FOLDER = '/home/emerim/FELIPE_EMERIN/flask-teste/uploads'
+
 EXTENSION = {'csv'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in EXTENSION
 
 
-def get_env_variable(name):
-    try:
-        return os.environ[name]
-    except KeyError:
-        message = "Expected environment variable '{}' not set.".format(name)
-        raise Exception(message)
-
-
-POSTGRES_URL = get_env_variable("POSTGRES_URL")
-POSTGRES_USER = get_env_variable("POSTGRES_USER")
-POSTGRES_PW = get_env_variable("POSTGRES_PW")
-POSTGRES_DB = get_env_variable("POSTGRES_DB")
-
-DB_URL = 'postgresql+psycopg2://{user}:{pw}@{url}/{db}'.format(user=POSTGRES_USER, pw=POSTGRES_PW, url=POSTGRES_URL,
-                                                               db=POSTGRES_DB)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False   # silence the deprecation warning
-
-db = SQLAlchemy(app)
+class Pessoa(db.Model):  # tables defined like this are automatically create by db.create_all()
+    nome = db.Column(db.String(30), primary_key=True)  # needs a primary key
+    idade = db.Column(db.Integer)
 
 
 @app.cli.command('resetdb')
 def resetdb_command():
     """Destroys and creates the database + tables."""
-
-    if database_exists(DB_URL):
+    db_url = app.config['SQLALCHEMY_DATABASE_URI']
+    if database_exists(db_url):
         print('Deleting database.')
-        drop_database(DB_URL)
-    if not database_exists(DB_URL):
+        drop_database(db_url)
+    if not database_exists(db_url):
         print('Creating database.')
-        create_database(DB_URL)
+        create_database(db_url)
 
     print('Creating tables.')
-    db.create_all()
-
+    db.create_all()    # creates all tables defined as classes that extends models
+    db.session.commit()
     # example of usage
-    con = db.engine.connect() # creates a connection object
-    query = text('''SELECT VERSION()''') # creates a query to select the version of postgres
+    con = db.engine.connect()    # creates a connection object
+    query = text('''SELECT VERSION()''')     # creates a query to select the version of postgres
     transaction = con.begin()   # begins the transaction
     try:       # example of simple transaction
         result = con.execute(query)
         print(result.fetchall())
         transaction.commit()
-    except:
+    except SQLAlchemyError:
         transaction.rollback()
         print('transaction rolled back due to errors')
 
-    with con.begin(): # example of transaction using the context manager
+    with con.begin():      # example of transaction using the context manager
+        # query = text('CREATE TABLE Pessoa(nome TEXT, idade INTEGER);')  # create table using raw sql
+        # con.execute(query)
+
+        data = {"nome": "Felipe", "idade": 20}
+        query = text('''INSERT INTO Pessoa(nome, idade) VALUES (:nome, :idade)''')   # always use text to create query
+        con.execute(query, nome='Carina', idade=20)  # inserting using arguments
+        con.execute(query, **data)  # inserting using dictionary
+
+        query = text('''UPDATE Pessoa SET idade = :idade WHERE nome = :nome''')
+        con.execute(query, idade=28, nome='Carina')  # both ways work with update
+
+        query = '''SELECT * FROM Pessoa'''
         result = con.execute(query)
         print(result.fetchall())
 

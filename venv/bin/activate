@@ -81,3 +81,4 @@ export POSTGRES_URL="127.0.0.1:5432"
 export POSTGRES_USER="emerim"
 export POSTGRES_PW="ve3"
 export POSTGRES_DB="emerim_db"
+export APP_SETTINGS='/home/emerim/PycharmProjects/flask_testes/config.py'
