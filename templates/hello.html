@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hello</title>
+</head>
+{% block container %}
+ <script src="{{'https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js'}}"></script>
+<script src="/static/hello.js"></script>
+{% endblock %}
+{% extends "messages.html" %}
+{% block body %}
+<body>
+<div id="target"></div>
+<form onsubmit="teste2(); return false">
+    <label for="nome"></label>
+    <input type="text" id="nome" name="nome">
+
+    <label for="senha"></label>
+    <input type="password" id="senha" name="senha">
+
+    <input type="submit">
+</form>
+</body>
+{% endblock %}
+
+
+</html>
