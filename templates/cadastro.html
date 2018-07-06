@@ -8,7 +8,7 @@
     </style>
 </head>
 <body>
-
+{% include "messages.html" %}
 {% macro render_field(field) %}
   <dt>{{ field.label }}
   <dd>{{ field(**kwargs)|safe }}
@@ -35,7 +35,7 @@
         <tr>
             <th style="border: 1px solid black; text-align: center">nome</th>
             <th style="border: 1px solid black; text-align: center">email</th>
-            <th style="border: 1px solid black; text-align: center">senha</th>
+            <th style="border: 1px solid black; text-align: center">remover</th>
 
         </tr>
     </thead>
@@ -44,7 +44,10 @@
     <tr>
         <td style="border: 1px solid black; text-align: center">{{ user.nome }}</td>
         <td style="border: 1px solid black; text-align: center">{{ user.email }}</td>
-        <td style="border: 1px solid black; text-align: center">{{ user.senha }}</td>
+        <td style="border: 1px solid black; text-align: center"><a href="/usuario/deleta{{ user.id }}">
+            <button type="button">Remover</button>
+        </a></td>
+
 
     </tr>
 {% else %}

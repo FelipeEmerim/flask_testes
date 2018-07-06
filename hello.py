@@ -262,5 +262,20 @@ def cadastro():
     return render_template('cadastro.html', form=form, users=Pessoa.query.all())
 
 
+@app.route('/usuario/deleta<int:user_id>', methods=['GET'])
+def deleta(user_id):
+
+    user = Pessoa.query.filter_by(id=user_id).first()
+
+    if not user:
+        flash('Usuario não encontrado')
+        return redirect('/usuario/cadastro')
+
+    flash('usuario '+user.nome+' deletado')
+    db.session.delete(user)
+    db.session.commit()
+
+    return redirect('/usuario/cadastro')
+
 
 
