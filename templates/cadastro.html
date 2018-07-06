@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+
+    </style>
+</head>
+<body>
+
+{% macro render_field(field) %}
+  <dt>{{ field.label }}
+  <dd>{{ field(**kwargs)|safe }}
+  {% if field.errors %}
+    <ul class=errors>
+    {% for error in field.errors %}
+      <li>{{ error }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+  </dd>
+{% endmacro %}
+
+<form method="post" action="/usuario/cadastro">
+    {{render_field(form.username)}}
+    {{render_field(form.email)}}
+    {{render_field(form.password)}}
+    {{render_field(form.confirm)}}
+    <p><input type="submit" formmethod="post" formaction="/usuario/cadastro"></p>
+</form>
+<h2>Usuarios cadastrados</h2>
+<table>
+    <thead>
+        <tr>
+            <th style="border: 1px solid black; text-align: center">nome</th>
+            <th style="border: 1px solid black; text-align: center">email</th>
+            <th style="border: 1px solid black; text-align: center">senha</th>
+
+        </tr>
+    </thead>
+    <tbody>
+{% for user in users %}
+    <tr>
+        <td style="border: 1px solid black; text-align: center">{{ user.nome }}</td>
+        <td style="border: 1px solid black; text-align: center">{{ user.email }}</td>
+        <td style="border: 1px solid black; text-align: center">{{ user.senha }}</td>
+
+    </tr>
+{% else %}
+    <tr>
+        <td>Nenhum usuario cadastrado</td>
+    </tr>
+    </tbody>
+{% endfor %}
+</table>
+</body>
+</html>

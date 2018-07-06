@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login2</title>
+</head>
+<body>
+{% include "messages.html" %}
+{% macro render_field(field) %}
+  <dt>{{ field.label }}
+  <dd>{{ field(**kwargs)|safe }}
+  {% if field.errors %}
+    <ul class=errors>
+    {% for error in field.errors %}
+      <li>{{ error }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+  </dd>
+{% endmacro %}
+
+<form method="post" action="/usuario/login2">
+    {{render_field(form.nome)}}
+    {{render_field(form.senha)}}
+    <p><input type="submit" formmethod="post" formaction="/usuario/login2"></p>
+</form>
+</body>
+</html>

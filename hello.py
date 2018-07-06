@@ -5,8 +5,10 @@ from flask import Flask, request, render_template, flash, send_from_directory, u
 import simplejson as json
 from werkzeug.exceptions import abort
 from werkzeug.utils import redirect, secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy_utils import database_exists, create_database, drop_database
 from sqlalchemy import text
+from wtforms import Form, BooleanField, StringField, PasswordField, validators
 
 app = Flask(__name__, static_url_path='/static')
 app.config.from_envvar('APP_SETTINGS')
@@ -21,8 +23,17 @@ def allowed_file(filename):
 
 
 class Pessoa(db.Model):  # tables defined like this are automatically create by db.create_all()
-    nome = db.Column(db.String(30), primary_key=True)  # needs a primary key
-    idade = db.Column(db.Integer)
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(30), unique=True)  # needs a primary key
+    email = db.Column(db.String(100))
+    senha = db.Column(db.String(500))
+
+    def __init__(self, nome, email, senha):
+
+        self.nome = nome
+        self.email = email
+        self.senha = generate_password_hash(senha)
 
 
 @app.cli.command('resetdb')
@@ -55,13 +66,13 @@ def resetdb_command():
         # query = text('CREATE TABLE Pessoa(nome TEXT, idade INTEGER);')  # create table using raw sql
         # con.execute(query)
 
-        data = {"nome": "Felipe", "idade": 20}
-        query = text('''INSERT INTO Pessoa(nome, idade) VALUES (:nome, :idade)''')   # always use text to create query
-        con.execute(query, nome='Carina', idade=20)  # inserting using arguments
+        data = {"nome": "Felipe", "email": 'lip@gmail.com', 'senha': '123'}
+        query = text('''INSERT INTO Pessoa(nome, email, senha) VALUES (:nome, :email, :senha)''')   # always use text to create query
+        con.execute(query, nome='Carina', email='carina@gmail.com', senha=123)  # inserting using arguments
         con.execute(query, **data)  # inserting using dictionary
 
-        query = text('''UPDATE Pessoa SET idade = :idade WHERE nome = :nome''')
-        con.execute(query, idade=28, nome='Carina')  # both ways work with update
+        query = text('''UPDATE Pessoa SET email = :email WHERE nome = :nome''')
+        con.execute(query, email='carina@sadas.com', nome='Carina')  # both ways work with update
 
         query = '''SELECT * FROM Pessoa'''
         result = con.execute(query)
@@ -153,6 +164,50 @@ def send_error(error):
     return render_template('erro.html'), 404
 
 
+class criaLogin(Form):
+    nome = StringField('Nome do usuario', [validators.Length(min=4, max=25)])
+    senha = PasswordField('Senha', [validators.DataRequired(),
+        validators.Regexp('^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{5,}$',
+                          message="a senha precisa conter um numero e uma letra maiuscula")
+    ])
+
+
+@app.route('/usuario/login2', methods=['GET', 'POST'])
+def user_login2():
+    if 'user' in session:
+        return redirect('/usuario/logged2')
+
+    form = criaLogin(request.form)
+
+    if request.method == 'POST' and form.validate():
+        pessoa = Pessoa.query.filter_by(nome=form.nome.data).first()
+        if not pessoa:
+            flash('Usuario não existe')
+            return render_template('login2.html', form=form)
+
+        if not check_password_hash(pessoa.senha, form.senha.data):
+            flash('senha incorreta')
+            return render_template('login2.html', form=form)
+
+        session['user'] = form.nome.data
+        flash('Você esta logado como '+session['user'])
+        return redirect('/usuario/logged2')
+
+    return render_template('login2.html', form=form)
+
+
+@app.route('/usuario/logged2', methods=['GET'])
+def user_logged2():
+
+    if request.args.get('logout'):
+        session.pop('user', None)
+
+    if 'user' not in session:
+        return redirect('/usuario/login2')
+
+    return render_template('logged2.html', user=session['user'])
+
+
 @app.route('/usuario/login')
 def user_login():
     if 'user' in session:
@@ -180,4 +235,32 @@ def logout():
         session.pop('user', None)
 
     return redirect('/usuario/login')
+
+
+class cria_cadastro(Form):
+    username = StringField('Username', [validators.Length(min=4, max=25)])
+    email = StringField('Email Address', [validators.Length(min=6, max=35)])
+    password = PasswordField('New Password', [
+        validators.DataRequired(),
+        validators.EqualTo('confirm', message='Passwords must match'),
+        validators.Regexp('^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{5,}$', message="a senha precisa conter um numero e uma letra maiuscula")
+    ])
+    confirm = PasswordField('Repeat Password')
+
+
+@app.route('/usuario/cadastro', methods=['GET', 'POST'])
+def cadastro():
+    form = cria_cadastro(request.form)
+
+    if request.method == 'POST' and form.validate():
+
+        print('sadas')
+        pessoa = Pessoa(form.username.data, form.email.data, form.password.data)
+        db.session.add(pessoa)
+        db.session.commit()
+
+    return render_template('cadastro.html', form=form, users=Pessoa.query.all())
+
+
+
 

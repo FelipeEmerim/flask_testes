@@ -24,5 +24,3 @@ SQLALCHEMY_DATABASE_URI = db_url
 SQLALCHEMY_TRACK_MODIFICATIONS = False  # silence the deprecation warning
 SECRET_KEY = os.urandom(16)
 DEBUG = True
-
-
