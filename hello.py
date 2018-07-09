@@ -36,6 +36,14 @@ class Pessoa(db.Model):  # tables defined like this are automatically create by 
         self.senha = generate_password_hash(senha)
 
 
+@app.before_request
+def check_login():
+
+    print(request.path)
+    if 'user' not in session and request.path != '/usuario/login2':
+        return redirect('/usuario/login2')
+
+
 @app.cli.command('resetdb')
 def resetdb_command():
     """Destroys and creates the database + tables."""
@@ -174,6 +182,7 @@ class criaLogin(Form):
 
 @app.route('/usuario/login2', methods=['GET', 'POST'])
 def user_login2():
+
     if 'user' in session:
         return redirect('/usuario/logged2')
 
@@ -201,8 +210,6 @@ def user_logged2():
 
     if request.args.get('logout'):
         session.pop('user', None)
-
-    if 'user' not in session:
         return redirect('/usuario/login2')
 
     return render_template('logged2.html', user=session['user'])
@@ -210,17 +217,12 @@ def user_logged2():
 
 @app.route('/usuario/login')
 def user_login():
-    if 'user' in session:
-        return redirect('/usuario/logged')
 
     return render_template('user_login.html')
 
 
 @app.route('/usuario/logged', methods=['POST', 'GET'])
 def user_logged():
-
-    if not request.form.get('name') and 'user' not in session:
-        return redirect('/usuario/login')
 
     if 'user' not in session:
         name = request.form['name']
