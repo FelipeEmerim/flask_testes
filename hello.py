@@ -189,7 +189,7 @@ def user_login2():
     form = criaLogin(request.form)
 
     if request.method == 'POST' and form.validate():
-        pessoa = Pessoa.query.filter_by(nome=form.nome.data).first()
+        pessoa = Pessoa.query.filter_by(nome=form.nome.data.strip()).first()
         if not pessoa:
             flash('Usuario não existe')
             return render_template('login2.html', form=form)
@@ -257,7 +257,7 @@ def cadastro():
     if request.method == 'POST' and form.validate():
 
         print('sadas')
-        pessoa = Pessoa(form.username.data, form.email.data, form.password.data)
+        pessoa = Pessoa(form.username.data.strip(), form.email.data.strip(), form.password.data)
         db.session.add(pessoa)
         db.session.commit()
 
