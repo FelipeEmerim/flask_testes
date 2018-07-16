@@ -40,60 +40,13 @@ class Pessoa(db.Model):  # tables defined like this are automatically create by 
 def check_login():
 
     print(request.path)
-    if 'user' not in session and request.path != '/usuario/login2':
-        return redirect('/usuario/login2')
-
-
-@app.cli.command('resetdb')
-def resetdb_command():
-    """Destroys and creates the database + tables."""
-    db_url = app.config['SQLALCHEMY_DATABASE_URI']
-    if database_exists(db_url):
-        print('Deleting database.')
-        drop_database(db_url)
-    if not database_exists(db_url):
-        print('Creating database.')
-        create_database(db_url)
-
-    print('Creating tables.')
-    db.create_all()    # creates all tables defined as classes that extends models
-    db.session.commit()
-    # example of usage
-    con = db.engine.connect()    # creates a connection object
-    query = text('''SELECT VERSION()''')     # creates a query to select the version of postgres
-    transaction = con.begin()   # begins the transaction
-    try:       # example of simple transaction
-        result = con.execute(query)
-        print(result.fetchall())
-        transaction.commit()
-    except SQLAlchemyError:
-        transaction.rollback()
-        print('transaction rolled back due to errors')
-
-    with con.begin():      # example of transaction using the context manager
-        # query = text('CREATE TABLE Pessoa(nome TEXT, idade INTEGER);')  # create table using raw sql
-        # con.execute(query)
-
-        data = {"nome": "Felipe", "email": 'lip@gmail.com', 'senha': '123'}
-        query = text('''INSERT INTO Pessoa(nome, email, senha) VALUES (:nome, :email, :senha)''')   # always use text to create query
-        con.execute(query, nome='Carina', email='carina@gmail.com', senha=123)  # inserting using arguments
-        con.execute(query, **data)  # inserting using dictionary
-
-        query = text('''UPDATE Pessoa SET email = :email WHERE nome = :nome''')
-        con.execute(query, email='carina@sadas.com', nome='Carina')  # both ways work with update
-
-        query = '''SELECT * FROM Pessoa'''
-        result = con.execute(query)
-        print(result.fetchall())
-
-    con.close()  # close the connection
-
-    print('It worked my friend')
+    if 'user' not in session and request.path != '/login' and request.endpoint != 'static':
+        return redirect('/login')
 
 
 @app.route('/')
 def index():
-    return 'Bem vindo ao index!'
+    return render_template('index.html')
 
 
 @app.route('/hello')
@@ -114,21 +67,28 @@ def show_number():
     return 'Seja bem vindo {}'.format(nome)
 
 
-@app.route('/login')
+@app.route('/login', methods=['POST', 'GET'])
 def login():
-    return render_template('hello.html')
 
+    if 'user' in session:
+        return redirect('/')
 
-@app.route('/logged', methods=['POST'])
-def logged_in():
-    data = request.get_json()
-    return json.dumps({'usuario': data['nome']})
+    form = criaLogin(request.form)
 
+    if request.method == 'POST' and form.validate():
+        pessoa = Pessoa.query.filter_by(nome=form.nome.data.strip()).first()
+        if not pessoa:
+            flash('Usuario não existe')
+            return render_template('login.html', form=form)
 
-@app.route('/logged_two', methods=['POST'])
-def logged_in_two():
-    data = request.get_json()
-    return render_template('logado.html', usuario=data['nome'])
+        if not check_password_hash(pessoa.senha, form.senha.data):
+            flash('senha incorreta')
+            return render_template('login.html', form=form)
+
+        session['user'] = form.nome.data
+        return redirect('/')
+
+    return render_template('login.html', form=form)
 
 
 @app.route('/upload', methods=['GET', 'POST'])
@@ -173,11 +133,11 @@ def send_error(error):
 
 
 class criaLogin(Form):
-    nome = StringField('Nome do usuario', [validators.Length(min=4, max=25)])
+    nome = StringField('Nome do usuario', [validators.Length(min=4, max=25)], render_kw={"placeholder": "Usuário"})
     senha = PasswordField('Senha', [validators.DataRequired(),
         validators.Regexp('^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{5,}$',
                           message="a senha precisa conter um numero e uma letra maiuscula")
-    ])
+    ], render_kw={"placeholder": "Senha"})
 
 
 @app.route('/usuario/login2', methods=['GET', 'POST'])
@@ -200,7 +160,7 @@ def user_login2():
 
         session['user'] = form.nome.data
         flash('Você esta logado como '+session['user'])
-        return redirect('/usuario/logged2')
+        return redirect('/')
 
     return render_template('login2.html', form=form)
 
@@ -215,10 +175,10 @@ def user_logged2():
     return render_template('logged2.html', user=session['user'])
 
 
-@app.route('/usuario/login')
+@app.route('/login')
 def user_login():
 
-    return render_template('user_login.html')
+    return render_template('login.html', form=form)
 
 
 @app.route('/usuario/logged', methods=['POST', 'GET'])
@@ -278,6 +238,55 @@ def deleta(user_id):
     db.session.commit()
 
     return redirect('/usuario/cadastro')
+
+
+@app.cli.command('resetdb')
+def resetdb_command():
+    """Destroys and creates the database + tables."""
+    db_url = app.config['SQLALCHEMY_DATABASE_URI']
+    if database_exists(db_url):
+        print('Deleting database.')
+        drop_database(db_url)
+    if not database_exists(db_url):
+        print('Creating database.')
+        create_database(db_url)
+
+    print('Creating tables.')
+    db.create_all()    # creates all tables defined as classes that extends models
+    db.session.commit()
+    # example of usage
+    con = db.engine.connect()    # creates a connection object
+    query = text('''SELECT VERSION()''')     # creates a query to select the version of postgres
+    transaction = con.begin()   # begins the transaction
+    try:       # example of simple transaction
+        result = con.execute(query)
+        print(result.fetchall())
+        transaction.commit()
+    except SQLAlchemyError:
+        transaction.rollback()
+        print('transaction rolled back due to errors')
+
+    with con.begin():      # example of transaction using the context manager
+        # query = text('CREATE TABLE Pessoa(nome TEXT, idade INTEGER);')  # create table using raw sql
+        # con.execute(query)
+
+        data = {"nome": "Felipe", "email": 'lip@gmail.com', 'senha': '123'}
+        query = text('''INSERT INTO Pessoa(nome, email, senha) VALUES (:nome, :email, :senha)''')   # always use text to create query
+        con.execute(query, nome='Carina', email='carina@gmail.com', senha=123)  # inserting using arguments
+        con.execute(query, **data)  # inserting using dictionary
+
+        query = text('''UPDATE Pessoa SET email = :email WHERE nome = :nome''')
+        con.execute(query, email='carina@sadas.com', nome='Carina')  # both ways work with update
+
+        query = '''SELECT * FROM Pessoa'''
+        result = con.execute(query)
+        print(result.fetchall())
+
+    con.close()  # close the connection
+
+    print('It worked my friend')
+
+
 
 
 
