@@ -9,6 +9,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy_utils import database_exists, create_database, drop_database
 from sqlalchemy import text
 from wtforms import Form, BooleanField, StringField, PasswordField, validators
+import csv
+import io
 
 app = Flask(__name__, static_url_path='/static')
 app.config.from_envvar('APP_SETTINGS')
@@ -34,15 +36,6 @@ class Pessoa(db.Model):  # tables defined like this are automatically create by 
         self.nome = nome
         self.email = email
         self.senha = generate_password_hash(senha)
-
-
-@app.before_request
-def check_login():
-
-    print(request.path)
-    if 'user' not in session and request.path != '/login' and request.endpoint != 'static':
-        return redirect('/login')
-
 
 @app.route('/')
 def index():
@@ -108,13 +101,9 @@ def upload_file():
             return json.dumps({'url': 'error'})
 
         if file and allowed_file(file.filename):
-
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            return json.dumps({'url': url_for('uploaded_file', filename=filename), 'name': filename})
-        else:
-            flash('file not supported')
-            return json.dumps({'url': 'error'})
+            stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+            csvfile = csv.reader(stream, delimiter=';', quotechar='', quoting=csv.QUOTE_NONE)
+            return render_template('show_csv.html', file_content=csvfile)
 
     return render_template('file_input.html')
 

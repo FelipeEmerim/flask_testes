@@ -9,7 +9,7 @@
 {% block body %}
 <body>
     {% include "messages.html" %}
-    <form onsubmit="upload(); return false" enctype="multipart/form-data" method="post">
+    <form action="/upload" enctype="multipart/form-data" method="post">
         <label for="file"></label>
         <input type="file" id="file" name="file">
         <input type="submit">

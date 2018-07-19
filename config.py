@@ -9,7 +9,7 @@ def get_env_variable(name):
         raise Exception(message)
 
 
-UPLOAD_FOLDER = '/home/emerim/FELIPE_EMERIN/flask-teste/uploads'
+UPLOAD_FOLDER = '/home/emerim/projects/PycharmProjects/flask_testes/uploads'
 
 
 postgres_url = get_env_variable("POSTGRES_URL")
